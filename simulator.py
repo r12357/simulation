@@ -99,9 +99,15 @@ class PhaseOscillatorSimulator:
 
     def velocity(self, phases: FloatArray | None = None) -> FloatArray:
         values = self.phases if phases is None else phases
-        delta = values[:, np.newaxis] - values[np.newaxis, :]
         preset = get_preset(self.preset_key)
-        interaction = preset.coupling(delta).sum(axis=1)
+        if preset.phase_velocity is not None:
+            return preset.phase_velocity(values)
+        if preset.coupling is None:
+            raise RuntimeError(f"preset has no coupling function: {preset.key}")
+        delta = values[:, np.newaxis] - values[np.newaxis, :]
+        interaction_matrix = preset.coupling(delta)
+        np.fill_diagonal(interaction_matrix, 0.0)
+        interaction = interaction_matrix.sum(axis=1)
         return self.natural_frequencies + self.coupling_strength * interaction / self.count
 
     def advance(self, seconds: float, max_step: float = 0.02) -> None:

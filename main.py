@@ -374,6 +374,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.state_value.setStyleSheet(self._status_style(summary.key))
         preset = get_preset(self.simulator.preset_key)
         self.preset_description.setText(preset.description)
+        uses_standard_parameters = preset.phase_velocity is None
+        self.coupling_spin.setEnabled(uses_standard_parameters)
+        self.spread_spin.setEnabled(uses_standard_parameters)
 
     @staticmethod
     def _status_style(key: str) -> str:

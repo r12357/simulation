@@ -6,7 +6,7 @@ import unittest
 
 import numpy as np
 
-from presets import CouplingPreset, register_preset
+from presets import CouplingPreset, cotangent_neighbor_velocity, get_preset, register_preset
 from simulator import PhaseOscillatorSimulator
 
 
@@ -97,6 +97,51 @@ class PhaseOscillatorSimulatorTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             simulator.arrange_pattern(3)
+
+    def test_additional_presets_are_registered(self) -> None:
+        keys = (
+            "two_harmonic_sync",
+            "two_cluster_sync",
+            "three_cluster_sync",
+            "sakaguchi_lag",
+            "mixed_attractive_repulsive",
+            "cotangent_neighbor_flow",
+        )
+
+        for key in keys:
+            with self.subTest(key=key):
+                self.assertEqual(get_preset(key).key, key)
+
+    def test_cotangent_neighbor_flow_uses_cyclic_boundary(self) -> None:
+        simulator = PhaseOscillatorSimulator(
+            count=4,
+            preset_key="cotangent_neighbor_flow",
+            coupling_strength=99.0,
+            frequency_spread=5.0,
+        )
+        simulator.phases = np.array([0.2, 1.4, 3.1, 5.2])
+        previous_gap = simulator.phases - np.roll(simulator.phases, 1)
+        next_gap = np.roll(simulator.phases, -1) - simulator.phases
+        expected = 0.5 * (
+            1.0 / np.tan(previous_gap / 2.0)
+            - 1.0 / np.tan(next_gap / 2.0)
+        )
+
+        np.testing.assert_allclose(simulator.velocity(), expected)
+
+    def test_cotangent_neighbor_flow_has_splay_equilibrium(self) -> None:
+        simulator = PhaseOscillatorSimulator(
+            count=12,
+            preset_key="cotangent_neighbor_flow",
+        )
+        simulator.arrange_splay()
+
+        np.testing.assert_allclose(simulator.velocity(), np.zeros(12), atol=1e-12)
+
+    def test_cotangent_neighbor_flow_regularizes_collision(self) -> None:
+        values = np.array([0.0, 0.0, 1.0, 3.0])
+
+        self.assertTrue(np.isfinite(cotangent_neighbor_velocity(values)).all())
 
 
 if __name__ == "__main__":

@@ -1,3 +1,6 @@
 __pycache__/
 *.py[cod]
 .venv/
+/reference.pdf
+/progress.md
+/prompt.md
